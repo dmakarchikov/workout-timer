@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0b0b0b">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Тренировка">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <title>Тренировка</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    :root {
+      --bg: #0b0b0b;
+      --surface-1: #1a1a1a;
+      --surface-2: #242424;
+      --surface-3: #2e2e2e;
+      --text-primary: #f0f0ee;
+      --text-secondary: #8a8a85;
+      --text-muted: #555552;
+      --border: rgba(255,255,255,0.08);
+      --border-strong: rgba(255,255,255,0.15);
+      --accent: #4f8ef7;
+      --accent-bg: rgba(79,142,247,0.12);
+      --success: #34c759;
+      --success-bg: rgba(52,199,89,0.12);
+      --warning: #ff9f0a;
+      --radius: 14px;
+    }
+
+    html, body {
+      background: var(--bg);
+      color: var(--text-primary);
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    .app {
+      max-width: 430px;
+      margin: 0 auto;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* SCREENS */
+    .screen { display: none; flex-direction: column; flex: 1; overflow: hidden; }
+    .screen.active { display: flex; }
+
+    /* HEADER */
+    .header {
+      padding: env(safe-area-inset-top, 12px) 20px 14px;
+      padding-top: max(env(safe-area-inset-top, 0px), 12px);
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      border-bottom: 0.5px solid var(--border);
+      flex-shrink: 0;
+    }
+    .header-back {
+      background: var(--surface-2);
+      border: none;
+      cursor: pointer;
+      color: var(--text-secondary);
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .header-back svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; }
+    .header-title { font-size: 16px; font-weight: 600; }
+    .header-sub { font-size: 12px; color: var(--text-muted); margin-top: 1px; }
+
+    /* HOME */
+    .home-hero { padding: 32px 20px 24px; flex-shrink: 0; }
+    .home-hero h1 { font-size: 32px; font-weight: 700; letter-spacing: -0.8px; margin-bottom: 6px; }
+    .home-hero p { font-size: 15px; color: var(--text-secondary); }
+
+    .workout-list { padding: 4px 20px 40px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+    .workout-card {
+      background: var(--surface-1);
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+      cursor: pointer;
+      transition: background 0.15s;
+      user-select: none;
+    }
+    .workout-card:active { background: var(--surface-2); }
+    .workout-card-name { font-size: 17px; font-weight: 600; margin-bottom: 5px; }
+    .workout-card-desc { font-size: 14px; color: var(--text-secondary); margin-bottom: 14px; line-height: 1.4; }
+    .workout-card-meta { display: flex; gap: 16px; }
+    .workout-card-meta span { font-size: 13px; color: var(--text-muted); display: flex; align-items: center; gap: 5px; }
+    .meta-icon { font-size: 14px; }
+
+    /* EXERCISE LIST */
+    .ex-list { padding: 12px 20px 0; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 8px; }
+    .ex-item {
+      background: var(--surface-1);
+      border: 0.5px solid var(--border);
+      border-radius: 12px;
+      padding: 13px 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .ex-num {
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      background: var(--surface-3);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 600; color: var(--text-muted);
+      flex-shrink: 0;
+    }
+    .ex-info { flex: 1; min-width: 0; }
+    .ex-name { font-size: 14px; font-weight: 500; }
+    .ex-meta-text { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+    .ex-type-badge {
+      font-size: 11px; padding: 3px 9px; border-radius: 20px; flex-shrink: 0; font-weight: 500;
+    }
+    .badge-reps { background: var(--accent-bg); color: var(--accent); }
+    .badge-hold { background: rgba(255,159,10,0.12); color: var(--warning); }
+
+    .start-btn-wrap { padding: 16px 20px; padding-bottom: max(env(safe-area-inset-bottom, 0px), 16px); flex-shrink: 0; }
+    .btn-cta {
+      width: 100%; padding: 16px;
+      background: var(--text-primary); color: var(--bg);
+      border: none; border-radius: var(--radius);
+      font-size: 16px; font-weight: 600; cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .btn-cta:active { opacity: 0.75; }
+
+    /* ACTIVE SCREEN */
+    .progress-bar { height: 2px; background: var(--surface-2); flex-shrink: 0; }
+    .progress-fill { height: 100%; background: var(--accent); transition: width 0.5s ease; }
+
+    .active-body { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+    /* Exercise header info */
+    .ex-header-zone { padding: 20px 20px 0; flex-shrink: 0; }
+    .ex-step-label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px; }
+    .ex-big-title { font-size: 22px; font-weight: 700; letter-spacing: -0.3px; line-height: 1.2; margin-bottom: 10px; }
+    .ex-description { font-size: 14px; color: var(--text-secondary); line-height: 1.55; margin-bottom: 16px; }
+
+    /* Set dots */
+    .set-dots { display: flex; gap: 6px; margin-bottom: 4px; }
+    .set-dot {
+      height: 4px; border-radius: 2px;
+      background: var(--surface-3);
+      transition: background 0.25s, flex 0.25s;
+      flex: 1;
+    }
+    .set-dot.done { background: var(--success); }
+    .set-dot.current { background: var(--accent); }
+
+    /* CENTER ZONE */
+    .center-zone {
+      flex: 1;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 8px 20px;
+    }
+
+    /* Reps display */
+    .reps-big { font-size: 96px; font-weight: 700; letter-spacing: -6px; line-height: 1; color: var(--text-primary); }
+    .reps-unit { font-size: 16px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 10px; }
+
+    /* Timer ring */
+    .timer-ring-wrap { position: relative; width: 200px; height: 200px; }
+    .timer-ring-wrap svg { position: absolute; top: 0; left: 0; transform: rotate(-90deg); }
+    .ring-bg { fill: none; stroke: var(--surface-2); stroke-width: 8; }
+    .ring-fg { fill: none; stroke: var(--accent); stroke-width: 8; stroke-linecap: round; transition: stroke-dashoffset 0.9s linear; }
+    .ring-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .ring-time { font-size: 58px; font-weight: 700; letter-spacing: -3px; line-height: 1; }
+    .ring-unit { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 4px; }
+
+    /* REST ZONE */
+    .rest-zone {
+      flex: 1;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 8px;
+    }
+    .rest-title { font-size: 13px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; }
+    .rest-time { font-size: 72px; font-weight: 700; letter-spacing: -4px; line-height: 1; color: var(--text-secondary); }
+    .rest-subtitle { font-size: 14px; color: var(--text-muted); text-align: center; padding: 0 24px; margin-top: 8px; }
+
+    /* ACTION AREA */
+    .action-area {
+      padding: 12px 20px;
+      padding-bottom: max(env(safe-area-inset-bottom, 0px), 16px);
+      display: flex; flex-direction: column; gap: 10px;
+      flex-shrink: 0;
+    }
+    .btn-secondary {
+      padding: 14px;
+      background: none;
+      color: var(--text-secondary);
+      border: 0.5px solid var(--border-strong);
+      border-radius: var(--radius);
+      font-size: 15px; cursor: pointer; width: 100%;
+      transition: background 0.12s;
+    }
+    .btn-secondary:active { background: var(--surface-2); }
+
+    /* COMPLETE / FINISH */
+    .complete-zone {
+      flex: 1;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 12px; padding: 32px 24px;
+    }
+    .complete-check {
+      width: 72px; height: 72px; border-radius: 50%;
+      background: var(--success-bg);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 32px;
+      margin-bottom: 8px;
+    }
+    .complete-title { font-size: 22px; font-weight: 700; }
+    .complete-sub { font-size: 14px; color: var(--text-secondary); text-align: center; }
+    .next-preview {
+      background: var(--surface-1);
+      border: 0.5px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px;
+      width: 100%;
+      margin-top: 4px;
+    }
+    .next-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
+    .next-name { font-size: 15px; font-weight: 600; }
+
+    /* FINISH SCREEN */
+    .finish-screen {
+      flex: 1;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 40px 24px;
+      gap: 12px;
+      overflow-y: auto;
+    }
+    .finish-emoji { font-size: 72px; margin-bottom: 8px; }
+    .finish-title { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
+    .finish-sub { font-size: 15px; color: var(--text-secondary); text-align: center; }
+    .finish-stats {
+      width: 100%;
+      background: var(--surface-1);
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 4px 0;
+      margin: 8px 0;
+    }
+    .stat-row {
+      display: flex; justify-content: space-between;
+      padding: 13px 18px;
+      border-bottom: 0.5px solid var(--border);
+    }
+    .stat-row:last-child { border-bottom: none; }
+    .stat-label { font-size: 14px; color: var(--text-secondary); }
+    .stat-val { font-size: 14px; font-weight: 600; }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- HOME -->
+  <div class="screen active" id="screen-home">
+    <div class="home-hero">
+      <h1>Тренировки</h1>
+      <p>Выбери программу и начни</p>
+    </div>
+    <div class="workout-list" id="workout-list"></div>
+  </div>
+
+  <!-- LIST -->
+  <div class="screen" id="screen-list">
+    <div class="header">
+      <button class="header-back" onclick="goHome()">
+        <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <div>
+        <div class="header-title" id="list-title"></div>
+        <div class="header-sub" id="list-sub"></div>
+      </div>
+    </div>
+    <div class="ex-list" id="ex-list"></div>
+    <div class="start-btn-wrap">
+      <button class="btn-cta" onclick="startWorkout()">Начать тренировку</button>
+    </div>
+  </div>
+
+  <!-- ACTIVE -->
+  <div class="screen" id="screen-active">
+    <div class="header">
+      <button class="header-back" onclick="confirmQuit()">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <div>
+        <div class="header-title" id="active-workout-name"></div>
+        <div class="header-sub" id="active-progress-text"></div>
+      </div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+    <div class="active-body" id="active-content"></div>
+  </div>
+
+  <!-- FINISH -->
+  <div class="screen" id="screen-finish">
+    <div class="finish-screen" id="finish-content"></div>
+  </div>
+
+</div>
+
+<script>
+// ─── DATA ────────────────────────────────────────────────────────────────────
+const workouts = [
+  {
+    id: "shoulder_rehab",
+    name: "Реабилитация плеча",
+    description: "Восстановление и укрепление плечевого сустава",
+    exercises: [
+      {
+        id: 1, type: 1,
+        title: "Отведение с палкой",
+        description: "Возьмите палку двумя руками. Здоровой рукой помогайте больной руке отводить её в сторону. Движение плавное, без рывков.",
+        sets: 1, reps: 20, restSeconds: 30
+      },
+      {
+        id: 2, type: 1,
+        title: "Отведение с согнутым локтем, удержание книги",
+        description: "Согните локоть под прямым углом, держите книгу в ладони. Отводите предплечье наружу, сохраняя локоть прижатым к телу.",
+        sets: 1, reps: 20, restSeconds: 30
+      },
+      {
+        id: 3, type: 2,
+        title: "Удержание руки с давлением в стену",
+        description: "Встаньте боком к стене, упритесь рукой под прямым углом. Давите ладонью в стену с умеренной силой, удерживайте напряжение.",
+        sets: 5, holdSeconds: 10, restSeconds: 15
+      },
+      {
+        id: 4, type: 1,
+        title: "Мобилизация с ремнём на шведской стенке",
+        description: "Прикрепите ремень к рейке на уровне плеча. Стоя боком, тяните ремень рукой вниз и в сторону, создавая тракцию в суставе.",
+        sets: 1, reps: 20, restSeconds: 30
+      },
+      {
+        id: 5, type: 2,
+        title: "Удержание прямой руки с резинкой спереди",
+        description: "Прикрепите резинку на уровне пояса спереди. Держа руку прямой, тяните резинку, отводя руку назад. Удерживайте конечное положение.",
+        sets: 5, holdSeconds: 20, restSeconds: 25
+      },
+      {
+        id: 6, type: 2,
+        title: "Удержание прямой руки с резинкой сзади",
+        description: "Прикрепите резинку сзади на уровне пояса. Держа руку прямой, тяните резинку вперёд и удерживайте это положение.",
+        sets: 5, holdSeconds: 20, restSeconds: 25
+      },
+      {
+        id: 7, type: 1,
+        title: "Тяга лопаток вниз с резинкой",
+        description: "Закрепите резинку выше головы. Потяните её вниз прямыми руками, сводя лопатки вниз и к позвоночнику. Фиксируйте на секунду.",
+        sets: 1, reps: 20, restSeconds: 30
+      }
+    ]
+  }
+];
+
+// ─── AUDIO ───────────────────────────────────────────────────────────────────
+let audioCtx = null;
+
+function getAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function beep(type) {
+  try {
+    const ctx = getAudio();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    if (type === 'done') {
+      // Two-tone success: high short + higher short
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      osc.frequency.setValueAtTime(1320, ctx.currentTime + 0.12);
+      gain.gain.setValueAtTime(0.35, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.35);
+    } else if (type === 'rest_done') {
+      // Go signal: ascending 3-beep
+      [660, 880, 1100].forEach((freq, i) => {
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.frequency.value = freq;
+        const t = ctx.currentTime + i * 0.12;
+        g.gain.setValueAtTime(0.3, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+        o.start(t); o.stop(t + 0.12);
+      });
+    } else if (type === 'tick') {
+      osc.frequency.value = 440;
+      gain.gain.setValueAtTime(0.1, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.06);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.06);
+    } else if (type === 'finish') {
+      [523, 659, 784, 1047].forEach((freq, i) => {
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.frequency.value = freq;
+        const t = ctx.currentTime + i * 0.15;
+        g.gain.setValueAtTime(0.3, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+        o.start(t); o.stop(t + 0.2);
+      });
+    }
+  } catch(e) {}
+}
+
+// Unlock audio on first touch
+document.addEventListener('touchstart', () => { try { getAudio(); } catch(e){} }, { once: true });
+document.addEventListener('click', () => { try { getAudio(); } catch(e){} }, { once: true });
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+let state = {
+  workout: null,
+  exIdx: 0,
+  setIdx: 0,
+  phase: 'exercise',
+  timer: null,
+  startTime: null
+};
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+function totalMinutes(w) {
+  let s = 0;
+  w.exercises.forEach(e => {
+    if (e.type === 2) s += e.sets * e.holdSeconds + (e.sets - 1) * e.restSeconds;
+    else s += 60;
+  });
+  return Math.ceil(s / 60);
+}
+
+function clearTimer() {
+  if (state.timer) { clearInterval(state.timer); state.timer = null; }
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function setDots(ex) {
+  if (ex.sets <= 1) return '';
+  const dots = Array.from({length: ex.sets}, (_, i) =>
+    `<div class="set-dot ${i < state.setIdx ? 'done' : i === state.setIdx ? 'current' : ''}"></div>`
+  ).join('');
+  return `<div class="set-dots">${dots}</div>`;
+}
+
+// ─── HOME ─────────────────────────────────────────────────────────────────────
+function renderHome() {
+  document.getElementById('workout-list').innerHTML = workouts.map(w => `
+    <div class="workout-card" onclick="openWorkout('${w.id}')">
+      <div class="workout-card-name">${w.name}</div>
+      <div class="workout-card-desc">${w.description}</div>
+      <div class="workout-card-meta">
+        <span><span class="meta-icon">📋</span>${w.exercises.length} упражнений</span>
+        <span><span class="meta-icon">⏱</span>~${totalMinutes(w)} мин</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function openWorkout(id) {
+  const w = workouts.find(x => x.id === id);
+  state.workout = w;
+  document.getElementById('list-title').textContent = w.name;
+  document.getElementById('list-sub').textContent = `${w.exercises.length} упражнений · ~${totalMinutes(w)} мин`;
+
+  document.getElementById('ex-list').innerHTML = w.exercises.map((e, i) => `
+    <div class="ex-item">
+      <div class="ex-num">${i + 1}</div>
+      <div class="ex-info">
+        <div class="ex-name">${e.title}</div>
+        <div class="ex-meta-text">${
+          e.type === 1
+            ? `${e.reps} повт · ${e.sets} подход${e.sets > 1 ? 'а' : ''}`
+            : `${e.holdSeconds}с удержание · ${e.sets} подходов · отдых ${e.restSeconds}с`
+        }</div>
+      </div>
+      <span class="ex-type-badge ${e.type === 1 ? 'badge-reps' : 'badge-hold'}">${e.type === 1 ? 'повторы' : 'таймер'}</span>
+    </div>
+  `).join('');
+
+  showScreen('screen-list');
+}
+
+function goHome() {
+  clearTimer();
+  showScreen('screen-home');
+}
+
+// ─── WORKOUT ─────────────────────────────────────────────────────────────────
+function startWorkout() {
+  state.exIdx = 0;
+  state.setIdx = 0;
+  state.phase = 'exercise';
+  state.startTime = Date.now();
+  document.getElementById('active-workout-name').textContent = state.workout.name;
+  showScreen('screen-active');
+  renderCurrent();
+}
+
+function renderCurrent() {
+  const w = state.workout;
+  const ex = w.exercises[state.exIdx];
+  const pct = (state.exIdx / w.exercises.length) * 100;
+
+  document.getElementById('active-progress-text').textContent =
+    `Упражнение ${state.exIdx + 1} из ${w.exercises.length}`;
+  document.getElementById('progress-fill').style.width = pct + '%';
+
+  if (state.phase === 'rest') {
+    renderRest(ex);
+  } else if (ex.type === 1) {
+    renderType1(ex);
+  } else {
+    renderType2(ex);
+  }
+}
+
+// Type 1: reps, manual "done" button
+function renderType1(ex) {
+  const setLabel = ex.sets > 1 ? ` · Подход ${state.setIdx + 1} из ${ex.sets}` : '';
+  document.getElementById('active-content').innerHTML = `
+    <div class="ex-header-zone">
+      <div class="ex-step-label">Упражнение ${state.exIdx + 1}${setLabel}</div>
+      <div class="ex-big-title">${ex.title}</div>
+      <div class="ex-description">${ex.description}</div>
+      ${setDots(ex)}
+    </div>
+    <div class="center-zone">
+      <div class="reps-big">${ex.reps}</div>
+      <div class="reps-unit">повторов</div>
+    </div>
+    <div class="action-area">
+      <button class="btn-cta" onclick="doneReps()">Сделал</button>
+    </div>
+  `;
+}
+
+function doneReps() {
+  beep('done');
+  const ex = state.workout.exercises[state.exIdx];
+  if (state.setIdx < ex.sets - 1) {
+    startRest(ex.restSeconds, false);
+  } else {
+    completeExercise();
+  }
+}
+
+// Type 2: hold timer, auto-starts, auto-advances
+function renderType2(ex) {
+  const circumference = 2 * Math.PI * 88;
+  const setLabel = ex.sets > 1 ? ` · Подход ${state.setIdx + 1} из ${ex.sets}` : '';
+  document.getElementById('active-content').innerHTML = `
+    <div class="ex-header-zone">
+      <div class="ex-step-label">Упражнение ${state.exIdx + 1}${setLabel}</div>
+      <div class="ex-big-title">${ex.title}</div>
+      <div class="ex-description">${ex.description}</div>
+      ${setDots(ex)}
+    </div>
+    <div class="center-zone">
+      <div class="timer-ring-wrap">
+        <svg width="200" height="200" viewBox="0 0 200 200">
+          <circle class="ring-bg" cx="100" cy="100" r="88"/>
+          <circle class="ring-fg" id="ring-fg" cx="100" cy="100" r="88"
+            stroke-dasharray="${circumference.toFixed(1)}"
+            stroke-dashoffset="0"/>
+        </svg>
+        <div class="ring-center">
+          <div class="ring-time" id="timer-display">${ex.holdSeconds}</div>
+          <div class="ring-unit">секунд</div>
+        </div>
+      </div>
+    </div>
+    <div class="action-area">
+      <button class="btn-secondary" onclick="skipHold()">Пропустить</button>
+    </div>
+  `;
+
+  // Auto-start timer
+  startHoldTimer(ex);
+}
+
+function startHoldTimer(ex) {
+  clearTimer();
+  const circumference = 2 * Math.PI * 88;
+  let remaining = ex.holdSeconds;
+
+  state.timer = setInterval(() => {
+    remaining--;
+
+    const disp = document.getElementById('timer-display');
+    const ring = document.getElementById('ring-fg');
+    if (disp) disp.textContent = remaining;
+    if (ring) ring.style.strokeDashoffset =
+      (circumference * (1 - remaining / ex.holdSeconds)).toFixed(2);
+
+    if (remaining <= 3 && remaining > 0) beep('tick');
+
+    if (remaining <= 0) {
+      clearTimer();
+      beep('done');
+      // Move to next set or complete
+      if (state.setIdx < ex.sets - 1) {
+        startRest(ex.restSeconds, true);
+      } else {
+        completeExercise();
+      }
+    }
+  }, 1000);
+}
+
+function skipHold() {
+  clearTimer();
+  const ex = state.workout.exercises[state.exIdx];
+  if (state.setIdx < ex.sets - 1) {
+    startRest(ex.restSeconds, true);
+  } else {
+    completeExercise();
+  }
+}
+
+// ─── REST ─────────────────────────────────────────────────────────────────────
+function startRest(seconds, isType2) {
+  clearTimer();
+  state.phase = 'rest';
+  renderRest(state.workout.exercises[state.exIdx], seconds, isType2);
+}
+
+function renderRest(ex, seconds, isType2) {
+  const totalSec = seconds !== undefined ? seconds : ex.restSeconds;
+  const nextSet = state.setIdx + 1;
+  const nextLabel = nextSet < ex.sets
+    ? `Следующий подход: ${nextSet + 1} из ${ex.sets}`
+    : '';
+
+  document.getElementById('active-content').innerHTML = `
+    <div class="ex-header-zone">
+      <div class="ex-step-label">Отдых</div>
+      <div class="ex-big-title">${ex.title}</div>
+      ${setDots(ex)}
+    </div>
+    <div class="rest-zone">
+      <div class="rest-title">Отдых</div>
+      <div class="rest-time" id="rest-display">${totalSec}</div>
+      <div class="rest-subtitle">${nextLabel}</div>
+    </div>
+    <div class="action-area">
+      <button class="btn-secondary" onclick="skipRest()">Пропустить отдых</button>
+    </div>
+  `;
+
+  let rem = totalSec;
+  state.timer = setInterval(() => {
+    rem--;
+    const el = document.getElementById('rest-display');
+    if (el) el.textContent = rem;
+    if (rem <= 0) {
+      clearTimer();
+      beep('rest_done');
+      state.setIdx++;
+      state.phase = 'exercise';
+      renderCurrent(); // For type2 this will auto-start next hold
+    }
+  }, 1000);
+}
+
+function skipRest() {
+  clearTimer();
+  beep('rest_done');
+  state.setIdx++;
+  state.phase = 'exercise';
+  renderCurrent();
+}
+
+// ─── COMPLETE ─────────────────────────────────────────────────────────────────
+function completeExercise() {
+  clearTimer();
+  const w = state.workout;
+  const isLast = state.exIdx >= w.exercises.length - 1;
+
+  if (isLast) {
+    beep('finish');
+    setTimeout(() => showFinish(), 300);
+    return;
+  }
+
+  beep('done');
+  const nextEx = w.exercises[state.exIdx + 1];
+
+  document.getElementById('active-content').innerHTML = `
+    <div class="complete-zone">
+      <div class="complete-check">✓</div>
+      <div class="complete-title">Выполнено!</div>
+      <div class="complete-sub">${w.exercises[state.exIdx].title}</div>
+      <div class="next-preview">
+        <div class="next-label">Следующее</div>
+        <div class="next-name">${nextEx.title}</div>
+      </div>
+    </div>
+    <div class="action-area">
+      <button class="btn-cta" onclick="nextExercise()">Следующее упражнение</button>
+    </div>
+  `;
+}
+
+function nextExercise() {
+  state.exIdx++;
+  state.setIdx = 0;
+  state.phase = 'exercise';
+  renderCurrent();
+}
+
+// ─── FINISH ───────────────────────────────────────────────────────────────────
+function showFinish() {
+  const elapsed = Math.round((Date.now() - state.startTime) / 1000 / 60);
+  const w = state.workout;
+  document.getElementById('finish-content').innerHTML = `
+    <div class="finish-emoji">🎉</div>
+    <div class="finish-title">Готово!</div>
+    <div class="finish-sub">Тренировка завершена. Отличная работа!</div>
+    <div class="finish-stats">
+      <div class="stat-row"><span class="stat-label">Тренировка</span><span class="stat-val">${w.name}</span></div>
+      <div class="stat-row"><span class="stat-label">Упражнений</span><span class="stat-val">${w.exercises.length}</span></div>
+      <div class="stat-row"><span class="stat-label">Время</span><span class="stat-val">~${elapsed} мин</span></div>
+    </div>
+    <button class="btn-cta" style="width:100%;margin-top:8px" onclick="goHome()">На главную</button>
+  `;
+  showScreen('screen-finish');
+}
+
+function confirmQuit() {
+  clearTimer();
+  if (confirm('Прервать тренировку?')) {
+    goHome();
+  } else {
+    // Resume timer if we were mid-hold
+    const ex = state.workout.exercises[state.exIdx];
+    if (state.phase === 'exercise' && ex.type === 2) {
+      renderType2(ex);
+    }
+  }
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+renderHome();
+
+// Service Worker registration
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
