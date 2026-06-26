@@ -411,6 +411,18 @@ function beep(type) {
         g.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
         o.start(t); o.stop(t + 0.12);
       });
+    } else if (type === 'warn') {
+      // Two soft beeps — "get ready"
+      [660, 660].forEach((freq, i) => {
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.frequency.value = freq;
+        const t = ctx.currentTime + i * 0.22;
+        g.gain.setValueAtTime(0.25, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+        o.start(t); o.stop(t + 0.18);
+      });
     } else if (type === 'tick') {
       osc.frequency.value = 440;
       gain.gain.setValueAtTime(0.1, ctx.currentTime);
@@ -661,6 +673,7 @@ function renderRest(ex, seconds, isType2) {
   const nextLabel = nextSet < ex.sets
     ? `Следующий подход: ${nextSet + 1} из ${ex.sets}`
     : '';
+  const showWarning = isType2 && totalSec > 5;
 
   document.getElementById('active-content').innerHTML = `
     <div class="ex-header-zone">
@@ -679,16 +692,21 @@ function renderRest(ex, seconds, isType2) {
   `;
 
   let rem = totalSec;
+  let warnPlayed = false;
   state.timer = setInterval(() => {
     rem--;
     const el = document.getElementById('rest-display');
     if (el) el.textContent = rem;
+    if (showWarning && rem === 5 && !warnPlayed) {
+      warnPlayed = true;
+      beep('warn');
+    }
     if (rem <= 0) {
       clearTimer();
       beep('rest_done');
       state.setIdx++;
       state.phase = 'exercise';
-      renderCurrent(); // For type2 this will auto-start next hold
+      renderCurrent();
     }
   }, 1000);
 }
