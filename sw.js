@@ -1,5 +1,12 @@
-const CACHE = 'workout-v1';
-const ASSETS = ['/', '/index.html', '/manifest.json'];
+const CACHE = 'workout-v2';
+const BASE = '/workout-timer';
+const ASSETS = [
+  BASE + '/',
+  BASE + '/index.html',
+  BASE + '/manifest.json',
+  BASE + '/icons/icon-192.png',
+  BASE + '/icons/icon-512.png'
+];
 
 self.addEventListener('install', e => {
   e.waitUntil(
