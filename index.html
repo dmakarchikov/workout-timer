@@ -175,6 +175,30 @@
     .reps-big { font-size: 96px; font-weight: 700; letter-spacing: -6px; line-height: 1; color: var(--text-primary); }
     .reps-unit { font-size: 16px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 10px; }
 
+    /* Counter tap zone */
+    .counter-zone {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      cursor: pointer; user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      position: relative;
+    }
+    .counter-zone:active .counter-num { transform: scale(0.92); }
+    .counter-num {
+      font-size: 110px; font-weight: 700; letter-spacing: -6px; line-height: 1;
+      color: var(--text-primary); transition: transform 0.08s;
+    }
+    .counter-of { font-size: 22px; color: var(--text-muted); margin-top: 2px; }
+    .counter-unit { font-size: 14px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 8px; }
+    .counter-hint { font-size: 12px; color: var(--text-muted); margin-top: 20px; opacity: 0.6; }
+    .counter-undo {
+      position: absolute; bottom: 16px; right: 20px;
+      background: none; border: 0.5px solid var(--border-strong);
+      color: var(--text-muted); border-radius: 8px;
+      padding: 6px 12px; font-size: 13px; cursor: pointer;
+    }
+    .counter-undo:active { background: var(--surface-2); }
+
     /* Timer ring */
     .timer-ring-wrap { position: relative; width: 200px; height: 200px; }
     .timer-ring-wrap svg { position: absolute; top: 0; left: 0; transform: rotate(-90deg); }
@@ -372,6 +396,55 @@ const workouts = [
         sets: 1, reps: 20, restSeconds: 30
       }
     ]
+  },
+  {
+    id: "shoulder_mobility",
+    name: "Мобилизация плеча",
+    description: "Подвижность, укрепление и контроль плечевого сустава",
+    exercises: [
+      {
+        id: 1, type: 1,
+        title: "Поднятие руки с ремнём",
+        description: "Закрепите ремень за опору внизу. Держа ремень в руке, медленно поднимайте прямую руку вперёд и вверх, используя натяжение ремня для поддержки. Опускайте так же медленно.",
+        sets: 1, reps: 20, restSeconds: 30
+      },
+      {
+        id: 2, type: 1,
+        title: "Лопаточные отжимания у стены",
+        description: "Встаньте лицом к стене, руки на ширине плеч. Не сгибая локтей, сводите и разводите лопатки — грудь движется к стене и от неё. Контролируйте движение только лопатками.",
+        sets: 3, reps: 15, restSeconds: 30
+      },
+      {
+        id: 3, type: 1,
+        title: "Отведение предплечья наружу с резиной",
+        description: "Прикрепите резину на уровне пояса. Локоть прижат к телу под углом 90°. Отводите предплечье наружу, удерживая локоть у корпуса. Медленно возвращайте.",
+        sets: 3, reps: 12, restSeconds: 30
+      },
+      {
+        id: 4, type: 1,
+        title: "Приведение предплечья с резиной",
+        description: "Резина закреплена сбоку. Локоть прижат к телу под углом 90°. Приводите предплечье внутрь к корпусу. Левой рукой держите правое плечо — контролируйте, чтобы плечо не двигалось.",
+        sets: 3, reps: 12, restSeconds: 30
+      },
+      {
+        id: 5, type: 1,
+        title: "Сгибание плеча из фазы разгибания",
+        description: "Начните с рукой отведённой назад за корпус. Медленно поднимайте прямую руку вперёд и вверх. В верхней точке удерживайте руку у корпуса 3 секунды, затем медленно опускайте обратно.",
+        sets: 3, reps: 10, restSeconds: 30
+      },
+      {
+        id: 6, type: 2,
+        title: "Удержание в позе 90×90 (левая рука)",
+        description: "Левая рука: плечо поднято до 90° в сторону, локоть согнут под 90°. Удерживайте положение. Ощущение усталости должно быть 6–7 из 10 — подберите нагрузку соответственно.",
+        sets: 5, holdSeconds: 30, restSeconds: 30
+      },
+      {
+        id: 7, type: 1,
+        title: "Мобилизация плеча в положении боковой планки",
+        description: "Примите положение боковой планки на правом боку. Удерживая корпус стабильным, выполняйте контролируемые движения верхней рукой — подъём и опускание. Следите за положением лопатки.",
+        sets: 3, reps: 10, restSeconds: 30
+      }
+    ]
   }
 ];
 
@@ -453,6 +526,7 @@ let state = {
   workout: null,
   exIdx: 0,
   setIdx: 0,
+  repCount: 0,
   phase: 'exercise',
   timer: null,
   startTime: null
@@ -557,8 +631,9 @@ function renderCurrent() {
   }
 }
 
-// Type 1: reps, manual "done" button
+// Type 1: tap counter
 function renderType1(ex) {
+  state.repCount = 0;
   const setLabel = ex.sets > 1 ? ` · Подход ${state.setIdx + 1} из ${ex.sets}` : '';
   document.getElementById('active-content').innerHTML = `
     <div class="ex-header-zone">
@@ -567,14 +642,43 @@ function renderType1(ex) {
       <div class="ex-description">${ex.description}</div>
       ${setDots(ex)}
     </div>
-    <div class="center-zone">
-      <div class="reps-big">${ex.reps}</div>
-      <div class="reps-unit">повторов</div>
+    <div class="counter-zone" onclick="tapRep()">
+      <div class="counter-num" id="rep-count">0</div>
+      <div class="counter-of">из ${ex.reps}</div>
+      <div class="counter-unit">повторов</div>
+      <div class="counter-hint">нажми на экран — считает повторы</div>
+      <button class="counter-undo" onclick="event.stopPropagation(); undoRep()">−1</button>
     </div>
     <div class="action-area">
-      <button class="btn-cta" onclick="doneReps()">Сделал</button>
+      <button class="btn-cta" id="done-btn" onclick="doneReps()" style="opacity:0.35" disabled>Сделал</button>
     </div>
   `;
+}
+
+function tapRep() {
+  const ex = state.workout.exercises[state.exIdx];
+  state.repCount = (state.repCount || 0) + 1;
+  beep('tick');
+  const el = document.getElementById('rep-count');
+  if (el) el.textContent = state.repCount;
+  if (state.repCount >= ex.reps) {
+    beep('done');
+    const btn = document.getElementById('done-btn');
+    if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+    if (state.repCount === ex.reps) {
+      if (el) { el.style.color = 'var(--success)'; }
+    }
+  }
+}
+
+function undoRep() {
+  if (!state.repCount || state.repCount <= 0) return;
+  state.repCount--;
+  const ex = state.workout.exercises[state.exIdx];
+  const el = document.getElementById('rep-count');
+  if (el) { el.textContent = state.repCount; el.style.color = ''; }
+  const btn = document.getElementById('done-btn');
+  if (btn && state.repCount < ex.reps) { btn.disabled = true; btn.style.opacity = '0.35'; }
 }
 
 function doneReps() {
@@ -705,6 +809,7 @@ function renderRest(ex, seconds, isType2) {
       clearTimer();
       beep('rest_done');
       state.setIdx++;
+      state.repCount = 0;
       state.phase = 'exercise';
       renderCurrent();
     }
@@ -715,6 +820,7 @@ function skipRest() {
   clearTimer();
   beep('rest_done');
   state.setIdx++;
+  state.repCount = 0;
   state.phase = 'exercise';
   renderCurrent();
 }
@@ -753,6 +859,7 @@ function completeExercise() {
 function nextExercise() {
   state.exIdx++;
   state.setIdx = 0;
+  state.repCount = 0;
   state.phase = 'exercise';
   renderCurrent();
 }
