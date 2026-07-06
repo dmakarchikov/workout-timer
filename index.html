@@ -631,9 +631,8 @@ function renderCurrent() {
   }
 }
 
-// Type 1: tap counter
+// Type 1: reps display + done button
 function renderType1(ex) {
-  state.repCount = 0;
   const setLabel = ex.sets > 1 ? ` · Подход ${state.setIdx + 1} из ${ex.sets}` : '';
   document.getElementById('active-content').innerHTML = `
     <div class="ex-header-zone">
@@ -642,43 +641,14 @@ function renderType1(ex) {
       <div class="ex-description">${ex.description}</div>
       ${setDots(ex)}
     </div>
-    <div class="counter-zone" onclick="tapRep()">
-      <div class="counter-num" id="rep-count">0</div>
-      <div class="counter-of">из ${ex.reps}</div>
-      <div class="counter-unit">повторов</div>
-      <div class="counter-hint">нажми на экран — считает повторы</div>
-      <button class="counter-undo" onclick="event.stopPropagation(); undoRep()">−1</button>
+    <div class="center-zone">
+      <div class="reps-big">${ex.reps}</div>
+      <div class="reps-unit">повторов</div>
     </div>
     <div class="action-area">
-      <button class="btn-cta" id="done-btn" onclick="doneReps()" style="opacity:0.35" disabled>Сделал</button>
+      <button class="btn-cta" onclick="doneReps()">Сделал</button>
     </div>
   `;
-}
-
-function tapRep() {
-  const ex = state.workout.exercises[state.exIdx];
-  state.repCount = (state.repCount || 0) + 1;
-  beep('tick');
-  const el = document.getElementById('rep-count');
-  if (el) el.textContent = state.repCount;
-  if (state.repCount >= ex.reps) {
-    beep('done');
-    const btn = document.getElementById('done-btn');
-    if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
-    if (state.repCount === ex.reps) {
-      if (el) { el.style.color = 'var(--success)'; }
-    }
-  }
-}
-
-function undoRep() {
-  if (!state.repCount || state.repCount <= 0) return;
-  state.repCount--;
-  const ex = state.workout.exercises[state.exIdx];
-  const el = document.getElementById('rep-count');
-  if (el) { el.textContent = state.repCount; el.style.color = ''; }
-  const btn = document.getElementById('done-btn');
-  if (btn && state.repCount < ex.reps) { btn.disabled = true; btn.style.opacity = '0.35'; }
 }
 
 function doneReps() {
